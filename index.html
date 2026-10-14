@@ -207,6 +207,7 @@ body.fs-lock{overflow:hidden}
       <span class="cap">Ordenamiento</span>
       <div class="chips">
         <button class="chip" data-alg="bubble">Bubble Sort</button>
+        <button class="chip" data-alg="selection">Selection Sort</button>
         <button class="chip" data-alg="insertion">Insertion Sort</button>
         <button class="chip" data-alg="quick">Quick Sort</button>
       </div>
@@ -395,6 +396,43 @@ function genInsertion(vals){
   return frames;
 }
 
+function genSelection(vals){
+  const R = makeRec(vals), {n, at, S, V, sw, snap, frames} = R;
+  snap(0, {vars:{n}, msg:`Empezamos con <b>n = ${n}</b> pingüinos. En cada pasada buscaremos al menor de la zona sin ordenar.`});
+  for (let i = 0; i < n - 1; i++){
+    S.done = new Set(rng(0, i - 1));
+    snap(1, {vars:{n, i}, ptrs:{i:i}, msg:`<b>i = ${i}</b>: buscamos al menor entre las posiciones ${i} y ${n - 1} para ponerlo en la posición ${i}.`});
+    let m = i;
+    S.pivotId = at[m];
+    snap(2, {vars:{n, i, menor:m}, ptrs:{i:i, menor:m}, msg:`Suponemos que el menor es el de la posición ${i}: <b>menor = ${i}</b> (el ${V(m)}).`});
+    for (let j = i + 1; j < n; j++){
+      snap(3, {vars:{n, i, j, menor:m}, ptrs:{i:i, menor:m, j:j}, msg:`<b>j = ${j}</b>: revisamos al pingüino <b>${V(j)}</b>.`});
+      const less = V(j) < V(m);
+      snap(4, {cmp:[j], look:[j, m], vars:{n, i, j, menor:m}, ptrs:{i:i, menor:m, j:j},
+        msg:`¿<b>v[${j}] &lt; v[menor]</b>? → ¿${V(j)} &lt; ${V(m)}? ${less ? '<b>Sí</b>, encontramos uno menor.' : '<b>No</b>, seguimos buscando.'}`});
+      if (less){
+        m = j; S.pivotId = at[m];
+        snap(5, {vars:{n, i, j, menor:m}, ptrs:{i:i, menor:m, j:j}, msg:`<b>menor = ${j}</b>: ahora el menor es el <b>${V(m)}</b>.`});
+      }
+    }
+    const need = m !== i;
+    snap(8, {vars:{n, i, menor:m}, ptrs:{i:i, menor:m}, msg: need
+      ? `¿<b>menor != i</b>? → ${m} != ${i}: <b>sí</b>, hay que intercambiar.`
+      : `<b>menor == i</b>: el <b>${V(i)}</b> ya está en su lugar, no hace falta intercambiar.`});
+    if (need){
+      const up = at[i], down = at[m];
+      sw(i, m);
+      snap(9, {swap:[i, m], jump:{up, down}, vars:{n, i, menor:m}, ptrs:{i:i, menor:m},
+        msg:`Intercambiamos: el <b>${V(m)}</b> brinca hacia la derecha y el <b>${V(i)}</b> pasa por debajo hasta la posición ${i}.`});
+    }
+    S.pivotId = null; S.done.add(i);
+    snap(11, {vars:{n, i}, msg:`El <b>${V(i)}</b> quedó en su lugar definitivo. La zona ordenada crece.`});
+  }
+  S.done = new Set(rng(0, n - 1));
+  snap(12, {vars:{n}, msg:`¡Listo! Todos los pingüinos están ordenados de menor a mayor.`});
+  return frames;
+}
+
 function genQuick(vals){
   const R = makeRec(vals), {n, S, V, sw, snap, frames} = R;
   function part(low, high){
@@ -527,6 +565,23 @@ const ALG = {
       "        if (ok) break;",
       "    }",
       "}"]},
+  selection:{name:'Selection Sort', kind:'sort', file:'selection_sort.cpp', gen:genSelection,
+    info:'En cada pasada busca al <b>menor</b> de la zona sin ordenar y lo intercambia con el primero de esa zona. Hace pocos intercambios (como máximo n - 1).<br><b>Tiempo:</b> O(n²) siempre · no estable.',
+    legend:[['pivot','Menor encontrado'],['cmp','Comparando'],['swap','Intercambio'],['ok','En su lugar']],
+    code:[
+      "void seleccionSort(int v[], int n) {",
+      "    for (int i = 0; i < n - 1; i++) {",
+      "        int menor = i;",
+      "        for (int j = i + 1; j < n; j++) {",
+      "            if (v[j] < v[menor]) {",
+      "                menor = j;",
+      "            }",
+      "        }",
+      "        if (menor != i) {",
+      "            swap(v[i], v[menor]);",
+      "        }",
+      "    }",
+      "}"]},
   insertion:{name:'Insertion Sort', kind:'sort', file:'insertion_sort.cpp', gen:genInsertion,
     info:'Levanta un pingüino (la <b>clave</b>) y lo desliza hacia la izquierda hasta encontrar su lugar dentro de la zona ya ordenada.<br><b>Tiempo:</b> O(n²) · mejor caso O(n) · estable.',
     legend:[['key','Clave en mano'],['swap','Se mueve'],['cmp','Comparando'],['ok','Zona ordenada']],
@@ -598,7 +653,7 @@ const ALG = {
       "}"]}
 };
 const LEG = {cmp:'#ffd23f', swap:'#ff7a59', ok:'#5be7a9', pivot:'#ff5ea8', less:'#7cc8ff', found:'#ffe066', key:'#ffd23f', dim:'#9a93b8'};
-const PC = {i:'#7cc8ff', j:'#ffd23f', 'j+1':'#ffe58a', lo:'#5be7a9', hi:'#ff9ec7', mid:'#ffd23f', pivote:'#ff5ea8'};
+const PC = {i:'#7cc8ff', j:'#ffd23f', 'j+1':'#ffe58a', lo:'#5be7a9', hi:'#ff9ec7', mid:'#ffd23f', pivote:'#ff5ea8', menor:'#ff5ea8'};
 const SCARVES = ['#f2b84b','#4fd68a','#ff6f6f','#58b7ff','#c58bff','#ff9a4d','#4fe0d0','#ff7fb5','#a8dd4a','#ffd166'];
 const SPEEDS = [1700,1350,1050,850,680,540,420,320,230,150];
 
@@ -634,7 +689,7 @@ function penguinSVG(H, num, scarf){
 /* ---------- código ---------- */
 function hl(s){
   s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return s.replace(/(\/\/.*$)|\b(for|while|if|else|return|break|true|false)\b|\b(int|void|bool)\b|\b(swap|quickSort|particionar|bubbleSort|insertionSort|busquedaSecuencial|busquedaBinaria)\b(?=\()|\b(\d+)\b/g,
+  return s.replace(/(\/\/.*$)|\b(for|while|if|else|return|break|true|false)\b|\b(int|void|bool)\b|\b(swap|seleccionSort|quickSort|particionar|bubbleSort|insertionSort|busquedaSecuencial|busquedaBinaria)\b(?=\()|\b(\d+)\b/g,
     (m, c, k, t, f, n) => c ? `<span class="c">${c}</span>` : k ? `<span class="k">${k}</span>` : t ? `<span class="t">${t}</span>` : f ? `<span class="f">${f}</span>` : `<span class="n">${n}</span>`);
 }
 function buildCode(){
